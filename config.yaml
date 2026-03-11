@@ -1,0 +1,13 @@
+out_dir: /Users/satyan/Wrk/zff_stuff/
+inp_pdb: input_pdbs
+meta_subdir: meta
+features_subdir: features
+logs_subdir: logs
+
+#threads: 4
+#tool_path: /usr/local/bin/toolA
+paths:
+  inp_pdb_dir: ${out_dir}/${inp_pdb}
+  meta_dir: ${out_dir}/${meta_subdir}
+  features_dir: ${out_dir}/${features_subdir}
+  logs_dir: ${out_dir}/${logs_subdir}
