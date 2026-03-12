@@ -1,4 +1,4 @@
-# zff
+# cdr-feature-pipeline
 
 Pipeline for building features for nanobody-antigen scoring using ML.
 
