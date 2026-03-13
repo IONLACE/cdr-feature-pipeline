@@ -24,19 +24,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Determine push eligibility
+        id: authcheck
+        if: github.event_name == 'push'
+        env:
+          GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
+          GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+        run: |
+          if [ -n "$GCP_WIF_PROVIDER" ] && [ -n "$GCP_SERVICE_ACCOUNT" ]; then
+            echo "can_push=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "can_push=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Authenticate to GCP (OIDC)
-        if: github.event_name == 'push' && secrets.GCP_WIF_PROVIDER != '' && secrets.GCP_SERVICE_ACCOUNT != ''
+        if: github.event_name == 'push' && steps.authcheck.outputs.can_push == 'true'
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Setup gcloud
-        if: github.event_name == 'push' && secrets.GCP_WIF_PROVIDER != '' && secrets.GCP_SERVICE_ACCOUNT != ''
+        if: github.event_name == 'push' && steps.authcheck.outputs.can_push == 'true'
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Configure Docker auth for GAR
-        if: github.event_name == 'push' && secrets.GCP_WIF_PROVIDER != '' && secrets.GCP_SERVICE_ACCOUNT != ''
+        if: github.event_name == 'push' && steps.authcheck.outputs.can_push == 'true'
         run: gcloud auth configure-docker $GAR_HOST --quiet
 
       - name: Build image
@@ -53,7 +66,7 @@ jobs:
           docker run --rm $IMAGE_URI:p1-$SHORT_SHA python -m pytest --collect-only -q
 
       - name: Push tags (push events only)
-        if: github.event_name == 'push' && secrets.GCP_WIF_PROVIDER != '' && secrets.GCP_SERVICE_ACCOUNT != ''
+        if: github.event_name == 'push' && steps.authcheck.outputs.can_push == 'true'
         run: |
           SHORT_SHA=${GITHUB_SHA::7}
           IMAGE_URI=$GAR_HOST/$PROJECT_ID/$GAR_REPOSITORY/$IMAGE_NAME
@@ -62,5 +75,5 @@ jobs:
           docker push $IMAGE_URI:p1-latest
 
       - name: Skip push without GCP secrets
-        if: github.event_name == 'push' && (secrets.GCP_WIF_PROVIDER == '' || secrets.GCP_SERVICE_ACCOUNT == '')
+        if: github.event_name == 'push' && steps.authcheck.outputs.can_push != 'true'
         run: echo "GCP secrets are not configured; build and smoke checks completed, skipping image push."
