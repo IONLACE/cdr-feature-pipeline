@@ -1,0 +1,8 @@
+__pycache__/
+.pytest_cache/
+.git/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+.DS_Store

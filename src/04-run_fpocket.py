@@ -1,6 +1,7 @@
 import argparse
 import csv
 import glob
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -11,6 +12,20 @@ import json
 
 DEFAULT_OUTPUT_DIR = PATHS.meta_dir 
 
+
+def resolve_fpocket_bin() -> str:
+    env_bin = os.environ.get("FPOCKET_BIN")
+    if env_bin:
+        return env_bin
+
+    discovered = shutil.which("fpocket")
+    if discovered:
+        return discovered
+
+    raise FileNotFoundError(
+        "fpocket executable not found. Set FPOCKET_BIN or install fpocket in PATH."
+    )
+
 def run_fpocket(input_pdb: Path, nb_ch: str, output_dir: Path = DEFAULT_OUTPUT_DIR):
     input_pdb = Path(input_pdb).resolve()
     output_dir = Path(output_dir).resolve()
@@ -18,9 +33,7 @@ def run_fpocket(input_pdb: Path, nb_ch: str, output_dir: Path = DEFAULT_OUTPUT_D
     if not input_pdb.exists():
         raise SystemExit(f"Input PDB not found: {input_pdb}")
 
-    fpocket_bin = "/opt/anaconda3/envs/fpocket/bin/fpocket"
-    if not Path(fpocket_bin).exists():
-        raise SystemExit("`fpocket` not found in PATH. Please install fpocket first.")
+    fpocket_bin = resolve_fpocket_bin()
 
     output_dir.mkdir(parents=True, exist_ok=True)
     staged_input = output_dir / input_pdb.name

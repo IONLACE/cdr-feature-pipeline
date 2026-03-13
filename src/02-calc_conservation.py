@@ -1,11 +1,27 @@
 import sys
 import csv
+import os
+import shutil
 from Bio import AlignIO, SeqIO, PDB
 from pathlib import Path
 from paths import PATHS
 from utils.utils_subprocess import run_command
 
 from io import StringIO
+
+
+def resolve_cons_capra07() -> str:
+    env_bin = os.environ.get("CONS_CAPRA07_BIN")
+    if env_bin:
+        return env_bin
+
+    discovered = shutil.which("cons-capra07")
+    if discovered:
+        return discovered
+
+    raise FileNotFoundError(
+        "cons-capra07 executable not found. Set CONS_CAPRA07_BIN or install cons-capra07 in PATH."
+    )
 
 
 def clean_msa(msa_fasta, clean_msa_fasta):
@@ -30,7 +46,7 @@ def clean_msa(msa_fasta, clean_msa_fasta):
     SeqIO.write(new_records, clean_msa_fasta, "fasta")
 
 def msa_to_cons_scores(clean_msa_fasta: str, cons_scores_file: str):
-    cmd = ["/Users/satyan/Wrk/packages/cons-capra07-main/target/release/cons-capra07", 
+    cmd = [resolve_cons_capra07(),
     "-i", str(clean_msa_fasta), 
     "-o", str(cons_scores_file), 
     "-w", "va", 
