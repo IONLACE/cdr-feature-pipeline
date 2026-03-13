@@ -17,10 +17,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Build fpocket from source.
 ARG FPOCKET_REPO=https://github.com/Discngine/fpocket.git
-RUN git clone --depth 1 "${FPOCKET_REPO}" /tmp/fpocket \
-    && cmake -S /tmp/fpocket -B /tmp/fpocket/build -DCMAKE_BUILD_TYPE=Release \
-    && cmake --build /tmp/fpocket/build --parallel $(nproc) \
-    && cp /tmp/fpocket/build/bin/fpocket /usr/local/bin/fpocket \
+RUN git clone --depth 1 "${FPOCKET_REPO}" /tmp/fpocket
+RUN cmake \
+        -S /tmp/fpocket \
+        -B /tmp/fpocket/build \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr/local
+RUN cmake --build /tmp/fpocket/build --parallel "$(nproc)"
+RUN cmake --install /tmp/fpocket/build \
     && rm -rf /tmp/fpocket
 
 # Build cons-capra07 from source (needed for step 02 conservation scoring).
