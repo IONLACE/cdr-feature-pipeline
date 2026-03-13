@@ -17,9 +17,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Build fpocket from source (no apt package exists).
 ARG FPOCKET_REPO=https://github.com/Discngine/fpocket.git
 RUN git clone --depth 1 "${FPOCKET_REPO}" /tmp/fpocket \
-    && cmake -S /tmp/fpocket -B /tmp/fpocket/build \
-    && cmake --build /tmp/fpocket/build --parallel $(nproc) \
-    && cp /tmp/fpocket/build/bin/fpocket /usr/local/bin/fpocket \
+        && if [ -f /tmp/fpocket/CMakeLists.txt ]; then \
+                 cmake -S /tmp/fpocket -B /tmp/fpocket/build \
+                 && cmake --build /tmp/fpocket/build --parallel $(nproc) \
+                 && cp /tmp/fpocket/build/bin/fpocket /usr/local/bin/fpocket; \
+             elif [ -f /tmp/fpocket/src/Makefile ]; then \
+                 make -C /tmp/fpocket/src \
+                 && cp /tmp/fpocket/bin/fpocket /usr/local/bin/fpocket; \
+             else \
+                 echo "Unsupported fpocket source layout" && ls -la /tmp/fpocket && exit 1; \
+             fi \
     && rm -rf /tmp/fpocket
 
 # Build cons-capra07 from source (needed for step 02 conservation scoring).
