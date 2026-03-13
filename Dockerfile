@@ -9,7 +9,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     build-essential \
     cargo \
-    cmake \
     curl \
     git \
     zlib1g-dev \
@@ -17,18 +16,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Build fpocket from source.
 ARG FPOCKET_REPO=https://github.com/Discngine/fpocket.git
-RUN git clone --depth 1 "${FPOCKET_REPO}" /tmp/fpocket
-RUN cmake \
-        -S /tmp/fpocket \
-        -B /tmp/fpocket/build \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX=/usr/local
-RUN cmake --build /tmp/fpocket/build --parallel "$(nproc)"
-RUN cmake --install /tmp/fpocket/build \
+RUN git clone --depth 1 "${FPOCKET_REPO}" /tmp/fpocket \
+    && sed -i 's/char \*residue_string\[M_MAX_CUSTOM_POCKET_LEN\];/char residue_string[M_MAX_CUSTOM_POCKET_LEN];/' /tmp/fpocket/src/fparams.c \
+    && sed -i 's/strcpy(&residue_string, pt);/strcpy(residue_string, pt);/' /tmp/fpocket/src/fparams.c \
+    && make -C /tmp/fpocket qhull \
+    && make -C /tmp/fpocket fpocket \
+    && install -m 0755 /tmp/fpocket/bin/fpocket /usr/local/bin/fpocket \
     && rm -rf /tmp/fpocket
 
 # Build cons-capra07 from source (needed for step 02 conservation scoring).
-ARG CONS_CAPRA07_REPO=https://github.com/IONLACE/cons-capra07.git
+ARG CONS_CAPRA07_REPO=https://github.com/shin-kinos/cons-capra07.git
 RUN git clone --depth 1 "${CONS_CAPRA07_REPO}" /tmp/cons-capra07 \
     && cargo build --release --manifest-path /tmp/cons-capra07/Cargo.toml \
     && cp /tmp/cons-capra07/target/release/cons-capra07 /usr/local/bin/cons-capra07 \
