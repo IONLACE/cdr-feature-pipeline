@@ -62,8 +62,8 @@ jobs:
         run: |
           SHORT_SHA=${GITHUB_SHA::7}
           IMAGE_URI=$GAR_HOST/$PROJECT_ID/$GAR_REPOSITORY/$IMAGE_NAME
-          docker run --rm $IMAGE_URI:p1-$SHORT_SHA python -c "import yaml, pandas, numpy, scipy, Bio; print('imports ok')"
-          docker run --rm $IMAGE_URI:p1-$SHORT_SHA python -m pytest --collect-only -q
+          docker run --rm --entrypoint python $IMAGE_URI:p1-$SHORT_SHA -c "import yaml, pandas, numpy, scipy, Bio; print('imports ok')"
+          docker run --rm --entrypoint python $IMAGE_URI:p1-$SHORT_SHA -m pytest --collect-only -q
 
       - name: Push tags (push events only)
         if: github.event_name == 'push' && steps.authcheck.outputs.can_push == 'true'
