@@ -214,6 +214,41 @@ python -m src.merge_X_Y /path/to/ylabels.csv
 - Several scripts require external tools/packages (`blastp`, `blastdbcmd`, `cd-hit`, `clustalo`, `fpocket`, PandaProt, `cons-capra07`, ANARCI, etc.).
 - Use the same environment consistently when running the full pipeline to avoid dependency drift.
 
+## Testing
+
+Use both local tests and GitHub workflows.
+
+### Local tests
+
+Run unit tests with pytest:
+
+```bash
+pytest -q
+```
+
+You can also run a subset during development:
+
+```bash
+pytest -q tests/test_run_pipeline.py
+```
+
+### GitHub Actions checks
+
+- `CI` workflow (`.github/workflows/ci.yml`):
+  - Runs `pytest -q` on Python 3.10, 3.11, and 3.12.
+  - This is the main automated unit-test gate.
+
+- `Docker P1/P2 Build and Push` workflows:
+  - Build container images.
+  - Run smoke checks only (dependency import check and `run_pipeline.py --help` via container entrypoint).
+  - These workflows do not run pytest inside the image.
+
+Recommended pre-PR local check:
+
+```bash
+pytest -q
+```
+
 ## Outputs
 
 Main outputs in `<features_dir>` for machine learning model development and confidence-based model ranking:
