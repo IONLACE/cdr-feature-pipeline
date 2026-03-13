@@ -9,18 +9,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     build-essential \
     cargo \
+    cmake \
     curl \
     git \
+    zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install fpocket via micromamba (conda-forge).
-ENV PATH="/opt/fpocket/bin:$PATH" \
-    LD_LIBRARY_PATH="/opt/fpocket/lib"
-RUN curl -fsSL "https://github.com/mamba-org/micromamba-releases/releases/latest/download/micromamba-linux-64" \
-        -o /usr/local/bin/micromamba \
-    && chmod +x /usr/local/bin/micromamba \
-    && micromamba install -y --no-rc -c conda-forge fpocket --prefix /opt/fpocket \
-    && rm /usr/local/bin/micromamba
+# Build fpocket from source.
+ARG FPOCKET_REPO=https://github.com/Discngine/fpocket.git
+RUN git clone --depth 1 "${FPOCKET_REPO}" /tmp/fpocket \
+    && cmake -S /tmp/fpocket -B /tmp/fpocket/build -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build /tmp/fpocket/build --parallel $(nproc) \
+    && cp /tmp/fpocket/build/bin/fpocket /usr/local/bin/fpocket \
+    && rm -rf /tmp/fpocket
 
 # Build cons-capra07 from source (needed for step 02 conservation scoring).
 ARG CONS_CAPRA07_REPO=https://github.com/IONLACE/cons-capra07.git
