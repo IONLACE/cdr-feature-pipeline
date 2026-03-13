@@ -1,0 +1,62 @@
+on:
+  push:
+    branches:
+      - feature/docker-p2
+  pull_request:
+    branches:
+      - feature/docker-p2
+
+env:
+  PROJECT_ID: ionai-staging
+  LOCATION: us-central1
+  GAR_HOST: us-central1-docker.pkg.dev
+  GAR_REPOSITORY: REPLACE_WITH_REPO
+  IMAGE_NAME: REPLACE_WITH_IMAGE
+
+jobs:
+  docker-p2:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP (OIDC)
+        if: github.event_name == 'push'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Setup gcloud
+        if: github.event_name == 'push'
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker auth for GAR
+        if: github.event_name == 'push'
+        run: gcloud auth configure-docker $GAR_HOST --quiet
+
+      - name: Build image
+        run: |
+          SHORT_SHA=${GITHUB_SHA::7}
+          IMAGE_URI=$GAR_HOST/$PROJECT_ID/$GAR_REPOSITORY/$IMAGE_NAME
+          docker build -t $IMAGE_URI:p2-$SHORT_SHA .
+
+      - name: Smoke checks
+        run: |
+          SHORT_SHA=${GITHUB_SHA::7}
+          IMAGE_URI=$GAR_HOST/$PROJECT_ID/$GAR_REPOSITORY/$IMAGE_NAME
+          docker run --rm $IMAGE_URI:p2-$SHORT_SHA python -c "import yaml, pandas, numpy, scipy, Bio; print('imports ok')"
+          docker run --rm $IMAGE_URI:p2-$SHORT_SHA python -m pytest --collect-only -q
+
+      - name: Push tags (push events only)
+        if: github.event_name == 'push'
+        run: |
+          SHORT_SHA=${GITHUB_SHA::7}
+          IMAGE_URI=$GAR_HOST/$PROJECT_ID/$GAR_REPOSITORY/$IMAGE_NAME
+          docker push $IMAGE_URI:p2-$SHORT_SHA
+          docker tag $IMAGE_URI:p2-$SHORT_SHA $IMAGE_URI:p2-latest
+          docker push $IMAGE_URI:p2-latest
