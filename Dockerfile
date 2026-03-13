@@ -9,25 +9,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     build-essential \
     cargo \
-    cmake \
     curl \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Build fpocket from source (no apt package exists).
-ARG FPOCKET_REPO=https://github.com/Discngine/fpocket.git
-RUN git clone --depth 1 "${FPOCKET_REPO}" /tmp/fpocket \
-        && if [ -f /tmp/fpocket/CMakeLists.txt ]; then \
-                 cmake -S /tmp/fpocket -B /tmp/fpocket/build \
-                 && cmake --build /tmp/fpocket/build --parallel $(nproc) \
-                 && cp /tmp/fpocket/build/bin/fpocket /usr/local/bin/fpocket; \
-             elif [ -f /tmp/fpocket/src/Makefile ]; then \
-                 make -C /tmp/fpocket/src \
-                 && cp /tmp/fpocket/bin/fpocket /usr/local/bin/fpocket; \
-             else \
-                 echo "Unsupported fpocket source layout" && ls -la /tmp/fpocket && exit 1; \
-             fi \
-    && rm -rf /tmp/fpocket
+# Install fpocket via conda-forge (simpler than building from source).
+RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj -C /usr/local bin/micromamba \
+    && /usr/local/bin/micromamba install -c conda-forge fpocket -y --prefix /usr/local \
+    && rm /usr/local/bin/micromamba
 
 # Build cons-capra07 from source (needed for step 02 conservation scoring).
 ARG CONS_CAPRA07_REPO=https://github.com/IONLACE/cons-capra07.git
