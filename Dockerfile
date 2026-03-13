@@ -13,9 +13,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install fpocket via conda-forge (simpler than building from source).
-RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj -C /usr/local bin/micromamba \
-    && /usr/local/bin/micromamba install -c conda-forge fpocket -y --prefix /usr/local \
+# Install fpocket via micromamba (conda-forge).
+ENV PATH="/opt/fpocket/bin:$PATH" \
+    LD_LIBRARY_PATH="/opt/fpocket/lib"
+RUN curl -fsSL "https://github.com/mamba-org/micromamba-releases/releases/latest/download/micromamba-linux-64" \
+        -o /usr/local/bin/micromamba \
+    && chmod +x /usr/local/bin/micromamba \
+    && micromamba install -y --no-rc -c conda-forge fpocket --prefix /opt/fpocket \
     && rm /usr/local/bin/micromamba
 
 # Build cons-capra07 from source (needed for step 02 conservation scoring).
