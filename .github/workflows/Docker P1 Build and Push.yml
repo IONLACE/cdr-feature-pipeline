@@ -25,18 +25,18 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Authenticate to GCP (OIDC)
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && secrets.GCP_WIF_PROVIDER != '' && secrets.GCP_SERVICE_ACCOUNT != ''
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Setup gcloud
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && secrets.GCP_WIF_PROVIDER != '' && secrets.GCP_SERVICE_ACCOUNT != ''
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Configure Docker auth for GAR
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && secrets.GCP_WIF_PROVIDER != '' && secrets.GCP_SERVICE_ACCOUNT != ''
         run: gcloud auth configure-docker $GAR_HOST --quiet
 
       - name: Build image
@@ -53,10 +53,14 @@ jobs:
           docker run --rm $IMAGE_URI:p1-$SHORT_SHA python -m pytest --collect-only -q
 
       - name: Push tags (push events only)
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && secrets.GCP_WIF_PROVIDER != '' && secrets.GCP_SERVICE_ACCOUNT != ''
         run: |
           SHORT_SHA=${GITHUB_SHA::7}
           IMAGE_URI=$GAR_HOST/$PROJECT_ID/$GAR_REPOSITORY/$IMAGE_NAME
           docker push $IMAGE_URI:p1-$SHORT_SHA
           docker tag $IMAGE_URI:p1-$SHORT_SHA $IMAGE_URI:p1-latest
           docker push $IMAGE_URI:p1-latest
+
+      - name: Skip push without GCP secrets
+        if: github.event_name == 'push' && (secrets.GCP_WIF_PROVIDER == '' || secrets.GCP_SERVICE_ACCOUNT == '')
+        run: echo "GCP secrets are not configured; build and smoke checks completed, skipping image push."
